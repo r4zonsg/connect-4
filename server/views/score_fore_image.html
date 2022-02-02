@@ -38,10 +38,21 @@
 
             
 
-            const socket = io("http://connect.staging.it-tf.ch")
-            
-            function joinRoom(){
 
+
+            
+
+
+            const socket = io("http://connect.staging.it-tf.ch")
+            function joinRoom(){
+                room = document.getElementById("roomid").value
+                var roomp = document.createElement("p")
+                roomp.innerText = `roomid: ${room}`
+                document.getElementById("roomcontainer").appendChild(roomp)
+
+                document.getElementById("roomid").remove()
+                document.getElementById("joinRoomButton").remove()
+                socket.emit("join-room", room)
             }
 
             socket.on("connect", () => {
@@ -59,13 +70,30 @@
             })
 
 
-            socket.on("view", (servergamefield, servercounter, position) => {   
+            socket.on("view", (servergamefield, servercounter, position) => {  
                 enemyturn(position)
+                currentUser = true;
+                timer_increment()
                     
 
 
                     
-                })
+            })
+
+            socket.on("roomjoin", roomarray => {
+                localroomarray = roomarray
+            })
+
+
+            socket.on("fullRoom", (room) => {
+                alert("This room is already full")
+                document.location.reload(true)
+            })
+
+            socket.on("leave", () => {
+                alert("your opponent left the game you win")
+                document.location.reload(true)
+            })
 
 
 
@@ -350,8 +378,20 @@
 
 
 
+
+
+
                 if(gameIsOver){
                     return;
+                }
+
+
+                
+                if(room.length<1){
+                    alert("you need to join a room to play")
+                    document.location.reload(true)
+                    return;
+                
                 }
 
 
@@ -361,11 +401,31 @@
                 }
 
 
+                
 
-                if(localuserarray.length<2){
+
+
+                var rcounter = 0;
+
+                for(el of localroomarray){
+                    if(el == room){
+                        rcounter++
+                    }
+                }
+
+                
+
+
+
+
+
+
+                if(rcounter<2){
                     alert("wait for user to join your room")
                     return;
                 }
+
+
                 
 
 
@@ -405,36 +465,7 @@
                     
                 }
 
-
-
-
-
-
-                room = document.getElementById("roomid").value
-                if(room.length<1){
-                    alert("you need to join a room to play")
-                    document.location.reload(true)
-                    return;
-                
-                }
-
-
-
-            
                 socket.emit("model", counter, result, gamefield, player, position, room)
-
-
-
-
-
-
-
-
-                
-
-
-
-
 
 
                 
@@ -450,11 +481,24 @@
                     
                 }
                 
-                //checkwin();
+                checkwin();
                 
-                
+
                 counter++
+                currentUser = false;
+            
+
+
  
+            }
+
+            function timer_increment(){
+                if(currentUser==true){
+                    timer--
+                    document.getElementById("time").innerHTML = timer;
+                    setTimeout(timer_increment, 1000)
+                }
+
             }
 
 
@@ -544,7 +588,7 @@
         <h1>4 GEWINNT 3D</h1>
         <table>
             <tr>
-                <td><h3>Player = </h3></td><td id="currentplayer"><img id="playerimg" src="cube_red.png" width="50px" height="50px" alt=""></td>
+                <td><h3>Player = </h3></td><td id="currentplayer"><img id="playerimg" src="cube_red.png" width="50px" height="50px" alt=""></td><td><h3>Time = </h3></td><td><h3 id="time"></h3></td>
             </tr>
         </table>
          
@@ -556,16 +600,19 @@
         </div>
         <br>
     
-        <input type="text" id="roomid" placeholder="room">
+        <input type="text" id="roomid" placeholder="room"> <input type="button" value="join room"  id="joinRoomButton" onclick="joinRoom()">
         <br>
         <input type="button" value="Restart" onClick="document.location.reload(true)">
-        
+        <p id="roomcontainer"></p>
         
         <p>Wins red: <span id="stats_red"></span> </p>
         <p>Wins green: <span id="stats_green"></span> </p>
     </body>
     <script>
-        var room = 0;
+        var currentUser = true
+        var timer = 300
+        var localroomarray = []
+        var room = "";
         var localuserarray = []
         var playerarray = []
         var gameIsOver = false;

@@ -20,13 +20,20 @@ server.listen(3001, () => {
     console.log("server läuft")
 })
 
+var roomarray = []
 var userarray = []
 io.on("connection", (socket) => {
     console.log(socket.id)
     var socketarray = []
 
     socket.on("disconnect", function() {
+        console.log(socket.id)
         userarray.splice(-1)
+        //socket.to(room).emit("leave")
+        if(userarray.length==0){
+            roomarray = [];
+        }
+
     })
     
 
@@ -49,9 +56,29 @@ io.on("connection", (socket) => {
 
         
         
-        socket.broadcast.emit("view", servergamefield, servercounter, position)
+        socket.broadcast.to(room).emit("view", servergamefield, servercounter, position)
         
-        io.emit("gamefieldupdate", servergamefield, socketarray)
+        io.to(room).emit("gamefieldupdate", servergamefield, socketarray)
         
+    })
+
+    socket.on("join-room", room => {
+        var counter = 0;
+
+        for(el of roomarray){
+            if(el == room){
+                counter++
+            }
+        }
+
+        if(counter==2){
+            io.to(socket.id).emit("fullRoom", room)
+        }else{
+            socket.join(room)
+            roomarray.push(room)
+            io.emit("roomjoin", roomarray)
+        }
+
+
     })
 })
